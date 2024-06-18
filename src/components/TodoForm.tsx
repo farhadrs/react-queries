@@ -1,61 +1,12 @@
 import {useRef} from "react";
-import {useMutation, useQueryClient} from "@tanstack/react-query";
-import {Todo} from "../hooks/useTodos.ts";
-import axios from "axios";
+import useAddTodo from "../hooks/useAddTodo.ts";
 
-interface AddTodoContext {
-    previousTodos: Todo[];
-}
 
 const TodoForm = () => {
-    const queryClient = useQueryClient();
-    const writeTodo = useMutation<Todo, Error, Todo, AddTodoContext>({
-        mutationFn: (todo: Todo) =>
-            axios
-                .post<Todo>('https://jsonplaceholder.typicode.com/todos', todo)
-                .then(res => res.data),
-        // If the call to API was success
-        // Approach #3: Optimistic update
-        onMutate: (newTodo: Todo) => {
-            const previousTodos = queryClient.getQueryData<Todo[]>(['todos']) || [];
-            queryClient.setQueryData<Todo[]>(
-                ['todos'],
-                todos =>
-                    [newTodo, ...(todos || [])
-                    ]);
-            if (ref.current) ref.current.value = '';
-            return {previousTodos};
-        },
-        // Pessimistic Update
-        onSuccess: (respondedTodo, newTodo) => {
-
-            //     Approach #1: Invalidation the cache
-            // queryClient.invalidateQueries({
-            //     queryKey: ['todos']
-            // })
-
-            // Approach #2: Update data in the cache directly
-            // queryClient.setQueryData<Todo[]>(
-            //     ['todos'],
-            //     todos =>
-            //         [respondedTodo, ...(todos || [])
-            //         ]);
-            // if (ref.current) ref.current.value = '';
-
-            //  Implementing Approach #3
-            queryClient.setQueryData<Todo[]>(['todos'],
-                (todos) =>
-                    todos?.map((todo) =>
-                        todo === newTodo ? respondedTodo : todo));
-        },
-
-        onError: (error, newTodo, context) => {
-            if (!context) return;
-            queryClient.setQueryData<Todo[]>(['todos'], context.previousTodos);
-        }
-    });
-
     const ref = useRef<HTMLInputElement>(null);
+    const writeTodo = useAddTodo(() => {
+        if (ref.current) ref.current.value = '';
+    })
 
     return (
         <>
